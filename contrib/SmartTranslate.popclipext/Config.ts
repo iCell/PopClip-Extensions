@@ -1,8 +1,7 @@
 // #popclip
 // name: Smart Translate
-// icon: openai-icon.svg
 // identifier: io.icell.SmartTranslate.PopClipExtension
-// description: Send the selected text to OpenAI's API, if it’s an English statement, will convert them to standard English, if it’s a Chinese statement, will translate them into standard English..
+// description: Send the selected text to OpenAI's API to improve or translate it to the standard target language.
 // app: { name: Smart Translate, link: 'https://platform.openai.com/docs/api-reference/chat' }
 // popclipVersion: 4586
 // keywords: openai chatgpt translate
@@ -53,16 +52,8 @@ export const options = [
         values: ["gpt-3.5-turbo", "gpt-4", "gpt-4-turbo", "gpt-4o"],
     },
     {
-        identifier: 'fromLang',
-        label: 'Translate From',
-        type: 'multiple',
-        values: names,
-        defaultValue: 'Chinese',
-        description: "The language for translation."
-    },
-    {
-        identifier: 'tolang',
-        label: 'Translate To',
+        identifier: 'targetlang',
+        label: 'Target Language',
         type: 'multiple',
         values: names,
         defaultValue: 'English',
@@ -86,7 +77,7 @@ interface Response {
 
 // the main chat action
 const smartTranslate: ActionFunction<Options> = async (input, options) => {
-    const prompt = `You will be provided with statements, if it’s an ${options.tolang} statement, your task is to convert them to standard ${options.tolang}, if it’s a ${options.fromLang} statement, your task is to translate them into standard ${options.tolang}.`
+    const prompt = `You will be provided with statements, if it’s an ${options.targetlang} statement, your task is to convert them to standard ${options.targetlang}, if it’s not a ${options.targetlang} statement, your task is to translate them into standard ${options.targetlang}.`
 
     const openai = axios.create({
         baseURL: `https://api.openai.com/v1`,
@@ -104,17 +95,14 @@ const smartTranslate: ActionFunction<Options> = async (input, options) => {
             messages,
         });
 
-        const resp = data.choices[0].message.content
+        const content = data.choices[0].message.content
 
-        // if holding shift and option, paste just the response.
         // if holding shift, copy just the response.
         // else, paste the last input and response.
-        if (popclip.modifiers.shift && popclip.modifiers.option) {
-            popclip.pasteText(resp);
-        } else if (popclip.modifiers.shift) {
-            popclip.copyText(resp);
+        if (popclip.modifiers.shift) {
+            popclip.copyText(content);
         } else {
-            popclip.pasteText(resp);
+            popclip.pasteText(input.text.trimEnd() + "\n\n" + content);
             popclip.showSuccess();
         }
     } catch (e) {
@@ -131,10 +119,10 @@ export function getErrorInfo(error: unknown): string {
     }
 }
 
-// export the actions
 export const actions: Action<Options>[] = [
     {
-        title: "Translate",
+        title: "Smart Translate",
+        icon: "iconify:system-uicons:translate",
         code: smartTranslate,
     }
 ];
